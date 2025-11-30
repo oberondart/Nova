@@ -29,3 +29,11 @@ local function loop(times, event)
         event()
     end
 end
+
+local function while_loop(times, event)
+    local counter = 0
+    while counter < times do
+        event()
+        counter = counter + 1
+    end
+end
