@@ -11,16 +11,15 @@ local function let(name, value)
 end
 
 local function out(name)
-    if varstorage[name] ~= nil then
+    if varstorage[name] ~= nil and type(name) == "string" then
         print(varstorage[name])
-    else
-        print(name)
+        return
     end
-    if arraystorage[name] ~= nil then
+    if arraystorage[name] ~= nil and type(name) == "string" then
         print(arraystorage[name])
-    else
-        print(name)
+        return
     end
+    print(name)
 end
 
 local function input(name)
