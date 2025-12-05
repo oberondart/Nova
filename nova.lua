@@ -17,11 +17,19 @@ function Nova.out(name)
         print(varstorage[name])
         return
     end
-    if arraystorage[name] ~= nil and type(name) == "string" then
-        print(arraystorage[name])
+    if arraystorage[name] then
+        print(Nova.table_to_string(arraystorage[name]))
         return
     end
     print(name)
+end
+
+function Nova.table_to_string(t)
+    local items = {}
+    for i, v in ipairs(t) do
+        items[#items+1] = tostring(v)
+    end
+    return "[" .. table.concat(items, ", ") .. "]"
 end
 
 function Nova.input(name)
