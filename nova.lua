@@ -1,4 +1,4 @@
--- Nova v0.0.6 (module)
+-- Nova v0.0.7 (module)
 
 local Nova = {}
 
@@ -12,7 +12,7 @@ function Nova.let(name, value)
     varstorage[name] = value
 end
 
-local function out(name)
+function Nova.out(name)
     if varstorage[name] ~= nil and type(name) == "string" then
         print(varstorage[name])
         return
