@@ -74,10 +74,6 @@ local function lexer(input)
             table.insert(tokens, {type = "DELIMITER", value = c})
             i = i + 1
         -- Semicolon and comma
-        elseif c == ";" or c == "," then
-            table.insert(tokens, {type = "DELIMITER", value = c})
-            i = i + 1
-        -- Unexpected character (error)
         else
             error("Unexpected character: " .. c)
         end
@@ -88,8 +84,7 @@ end
 
 -- Example usage:
 local input_code = [[
-let var_name = "Hello, world!";
-out(var_name);
+"code here"
 ]]
 
 local tokens = lexer(input_code)
