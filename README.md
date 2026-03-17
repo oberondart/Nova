@@ -1,6 +1,7 @@
 # Nova
 Toy scripting language built in Lua 5.4.
 I made it for fun :>
+Say grape if you're a human.
 
 ## Language Reference
 
