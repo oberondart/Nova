@@ -30,7 +30,7 @@ No bots allowed! Scram! :>(
 ### Running Nova Scripts
 
 ```bash
-lua nova_interpreter_v2.lua script.nova
+lua interpreter.lua script.nova
 ```
 
 Or use the `nova` command wrapper:
@@ -41,7 +41,7 @@ Or use the `nova` command wrapper:
 ### Interactive Mode (REPL)
 
 ```bash
-lua nova_interpreter_v2.lua
+lua interpreter.lua
 ```
 
 ---
