@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
--- interpreter
--- Version 1.0.0
+-- Nova Scripting Language Interpreter
+-- Version 1.0.1 - New Syntax
 -- 100% Lua Implementation
 
 local NovaInterpreter = {}
@@ -289,10 +289,17 @@ function NovaInterpreter:parse_value(value_str)
         return nil
     end
     
-    -- Check for function calls (e.g., add("x", "y"))
-    local func_name, args_str = value_str:match("^(%w+)%s*%((.*)%)$")
-    if func_name then
-        local args = self:parse_arguments(args_str)
+    -- Check for function calls (e.g., add x y or add(x, y))
+    -- New syntax: add x y
+    local func_name = value_str:match("^(%w+)%s+")
+    if func_name and not value_str:match("%(") then
+        -- New syntax style: "add x y"
+        local rest = value_str:sub(#func_name + 2)
+        local args = {}
+        for arg in rest:gmatch("%S+") do
+            table.insert(args, self:parse_value(arg))
+        end
+        
         if self[func_name] and type(self[func_name]) == "function" then
             local success, result = pcall(function()
                 return self[func_name](self, table.unpack(args))
@@ -300,8 +307,22 @@ function NovaInterpreter:parse_value(value_str)
             if success then
                 return result
             end
-        elseif self.funcstorage[func_name] then
-            return self:call(func_name, table.unpack(args))
+        end
+    end
+    
+    -- Old syntax with parentheses: add(x, y)
+    local func_name_paren, args_str = value_str:match("^(%w+)%s*%((.*)%)$")
+    if func_name_paren then
+        local args = self:parse_arguments(args_str)
+        if self[func_name_paren] and type(self[func_name_paren]) == "function" then
+            local success, result = pcall(function()
+                return self[func_name_paren](self, table.unpack(args))
+            end)
+            if success then
+                return result
+            end
+        elseif self.funcstorage[func_name_paren] then
+            return self:call(func_name_paren, table.unpack(args))
         end
     end
     
@@ -313,7 +334,7 @@ function NovaInterpreter:parse_value(value_str)
             return {}
         end
         
-        -- Simple comma split (doesn't handle nested arrays perfectly)
+        -- Simple comma split
         local items = {}
         local depth = 0
         local current = ""
@@ -405,16 +426,108 @@ function NovaInterpreter:execute_line(line)
     line = trim(line)
     
     -- Skip empty lines and comments
-    if line == "" or line:match("^%-%-") or line:match("^//") then
+    if line == "" or line:match("^%-%-") or line:match("^//") or line:match("^#") then
         return
     end
     
-    -- Parse function calls
+    -- NEW SYNTAX PATTERNS
+    
+    -- Pattern: let x: value
+    local var_name, value_str = line:match("^let%s+([%w_]+)%s*:%s*(.+)$")
+    if var_name then
+        local value = self:parse_value(value_str)
+        self:let(var_name, value)
+        return
+    end
+    
+    -- Pattern: out x  (simple output without colon)
+    local out_var = line:match("^out%s+([%w_]+)$")
+    if out_var then
+        self:out(out_var)
+        return
+    end
+    
+    -- Pattern: out "text" or out: text
+    local out_text = line:match("^out%s*:%s*(.+)$")
+    if out_text then
+        local value = self:parse_value(out_text)
+        self:out(value)
+        return
+    end
+    
+    -- Pattern: out text (literal string without quotes)
+    if line:match("^out%s+") and not line:match(":") then
+        local text = line:sub(5)
+        text = trim(text)
+        -- Check if it's a variable or literal
+        if self.varstorage[text] or self.arraystorage[text] then
+            self:out(text)
+        else
+            -- Treat as literal string
+            print(text)
+        end
+        return
+    end
+    
+    -- Pattern: array name: [items]
+    local arr_name, arr_values = line:match("^array%s+([%w_]+)%s*:%s*(.+)$")
+    if arr_name then
+        local arr = self:parse_value(arr_values)
+        self:array(arr_name, arr)
+        return
+    end
+    
+    -- Pattern: sort x
+    local sort_arr = line:match("^sort%s+([%w_]+)$")
+    if sort_arr then
+        self:sort(sort_arr)
+        return
+    end
+    
+    -- Pattern: input x
+    local input_var = line:match("^input%s+([%w_]+)$")
+    if input_var then
+        self:input(input_var)
+        return
+    end
+    
+    -- Pattern: insert array_name index value
+    local ins_arr, ins_pos, ins_val = line:match("^insert%s+([%w_]+)%s+(%S+)%s+(.+)$")
+    if ins_arr then
+        local pos = self:parse_value(ins_pos)
+        local val = self:parse_value(ins_val)
+        self:insert(ins_arr, pos, val)
+        return
+    end
+    
+    -- Pattern: cut array_name index
+    local cut_arr, cut_idx = line:match("^cut%s+([%w_]+)%s+(%S+)$")
+    if cut_arr then
+        local idx = self:parse_value(cut_idx)
+        self:cut(cut_arr, idx)
+        return
+    end
+    
+    -- Pattern: greater x y
+    local gr_a, gr_b = line:match("^greater%s+([%w_]+)%s+([%w_]+)$")
+    if gr_a then
+        self:greater(gr_a, gr_b)
+        return
+    end
+    
+    -- Pattern: less x y
+    local ls_a, ls_b = line:match("^less%s+([%w_]+)%s+([%w_]+)$")
+    if ls_a then
+        self:less(ls_a, ls_b)
+        return
+    end
+    
+    -- OLD SYNTAX FALLBACK
     -- Pattern: function_name(args)
     local func_name, args_str = line:match("^(%w+)%s*%((.*)%)$")
     
     if func_name then
-        -- Parse arguments
+        -- Parse arguments (this will now evaluate nested function calls)
         local args = self:parse_arguments(args_str)
         
         -- Execute built-in functions
@@ -464,7 +577,7 @@ local function main()
         interpreter:execute(code)
     else
         -- Interactive REPL
-        print("Nova Interpreter v0.0.7")
+        print("Nova Interpreter v0.1.0 (New Syntax)")
         print("Type 'exit' or 'quit' to exit")
         print()
         
@@ -497,4 +610,4 @@ end
 -- Run main
 main()
 
-collectgarbage("collect") -- forced garbage collection at end, helps when running large scripts
+collectgarbage()
