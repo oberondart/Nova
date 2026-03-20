@@ -1,10 +1,10 @@
 # Nova Programming Language Guide
 
-**Version 1.0.1**
+**Version 1.0.2.** - Now with updated If-Else Statements!
 
-Welcome to Nova! A simple, clean scripting language designed for clarity and ease of use. Better say GRAPE if you're a human!
+Welcome to Nova! A simple, minimalistic scripting language designed for clarity and ease of use for everyone! :>.
 
-No bots allowed! Scram! :>(
+No bots needed! Better flee NOW :<
 
 ## Table of Contents
 
@@ -383,17 +383,139 @@ lessoreqt price1 price2        # Output: 25
 
 ## Control Flow
 
-### Conditional (If/Else)
+### If Statements
 
-**Note:** Currently uses Lua-style functions for conditionals:
+Execute code conditionally using if statements with curly braces:
 
+**Basic if:**
 ```nova
-# This feature uses old syntax for now
-ifdo("x", 10, function()
-    out: X is 10
-end, function()
-    out: X is not 10
-end)
+let x: 5
+
+if x == 5 {
+    out: X equals five!
+}
+```
+
+**If-else:**
+```nova
+let age: 25
+
+if age >= 18 {
+    out: Adult
+} else {
+    out: Minor
+}
+```
+
+**Nested if-else:**
+```nova
+let score: 87
+
+if score >= 90 {
+    out: Grade: A
+} else {
+    if score >= 80 {
+        out: Grade: B
+    } else {
+        if score >= 70 {
+            out: Grade: C
+        } else {
+            out: Grade: F
+        }
+    }
+}
+```
+
+### Comparison Operators
+
+All standard comparison operators are supported:
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `==` | Equal to | `x == 5` |
+| `!=` | Not equal to | `x != 0` |
+| `>` | Greater than | `x > 10` |
+| `<` | Less than | `x < 100` |
+| `>=` | Greater or equal | `x >= 18` |
+| `<=` | Less or equal | `x <= 50` |
+
+**Examples:**
+```nova
+# Equality
+if name == "Alice" {
+    out: Hello Alice!
+}
+
+# Not equal
+if status != "inactive" {
+    out: Account is active
+}
+
+# Greater than
+if temperature > 90 {
+    out: It's hot!
+}
+
+# Less than
+if count < 10 {
+    out: Low count
+}
+
+# Greater or equal
+if score >= 60 {
+    out: Pass
+}
+
+# Less or equal
+if speed <= 55 {
+    out: Within limit
+}
+```
+
+### Practical If-Else Examples
+
+**Temperature Check:**
+```nova
+let temp: 72
+
+if temp > 80 {
+    out: Hot weather
+} else {
+    if temp > 60 {
+        out: Nice weather
+    } else {
+        out: Cold weather
+    }
+}
+```
+
+**Password Validator:**
+```nova
+let password: "secret123"
+let min_length: 8
+let pass_len: len password
+
+if pass_len >= min_length {
+    out: Password accepted
+} else {
+    out: Password too short
+}
+```
+
+**Number Comparison:**
+```nova
+let a: 10
+let b: 20
+
+if a > b {
+    out: A is larger
+} else {
+    if a < b {
+        out: B is larger
+    } else {
+        out: Equal
+    }
+}
 ```
 
 ### Loops
@@ -401,7 +523,7 @@ end)
 Repeat an action a fixed number of times:
 
 ```nova
-# Also uses old syntax currently
+# Note: Loop syntax uses old-style functions
 loop(5, function()
     out: Hello!
 end)
@@ -641,6 +763,62 @@ out: Temperature in Celsius:
 out celsius
 ```
 
+### Example 9: Grade Calculator with If-Else
+
+```nova
+# Grade Calculator
+
+let student: "Alice"
+let score: 87
+
+out: ========================================
+out:      GRADE CALCULATOR
+out: ========================================
+out: 
+
+out: Student:
+out student
+out: Score:
+out score
+out: 
+
+# Determine letter grade
+if score >= 90 {
+    out: Grade: A
+    out: Excellent work!
+} else {
+    if score >= 80 {
+        out: Grade: B
+        out: Good job!
+    } else {
+        if score >= 70 {
+            out: Grade: C
+            out: Satisfactory
+        } else {
+            if score >= 60 {
+                out: Grade: D
+                out: Needs improvement
+            } else {
+                out: Grade: F
+                out: Please see instructor
+            }
+        }
+    }
+}
+
+out: 
+
+# Pass/Fail status
+if score >= 60 {
+    out: Status: PASS
+} else {
+    out: Status: FAIL
+}
+
+out: 
+out: ========================================
+```
+
 ---
 
 ## Tips and Best Practices
@@ -699,6 +877,14 @@ array players: ["Alice", "Bob", "Carol", "Dave"]
 | Variable | `let name: value` | `let x: 10` |
 | Output | `out: text` or `out var` | `out: Hello` |
 | Input | `input name` | `input username` |
+| If statement | `if condition { }` | `if x == 5 { }` |
+| If-else | `if condition { } else { }` | `if x > 0 { } else { }` |
+| Equal | `==` | `if x == 5 { }` |
+| Not equal | `!=` | `if x != 0 { }` |
+| Greater | `>` | `if x > 10 { }` |
+| Less | `<` | `if x < 100 { }` |
+| Greater/Equal | `>=` | `if x >= 18 { }` |
+| Less/Equal | `<=` | `if x <= 50 { }` |
 | Add | `add x y` | `let sum: add a b` |
 | Subtract | `sub x y` | `let diff: sub a b` |
 | Multiply | `mul x y` | `let prod: mul a b` |
@@ -725,6 +911,8 @@ Common errors and their meanings:
 - `error: len() expects type string` - Tried to get length of non-string
 - `error: file X not found` - Script file doesn't exist
 - `error: unknown function 'X'` - Function name not recognized
+- `error: invalid if syntax` - Check your if statement condition and braces
+- `error: no matching } for if statement` - Missing closing brace for if block
 
 ---
 
@@ -733,10 +921,24 @@ Common errors and their meanings:
 Now that you know Nova basics, try:
 
 1. Writing your own scripts
-2. Combining multiple operations
-3. Creating interactive programs
-4. Processing data with arrays
-5. Building calculators and converters
+2. Using if-else for decision making
+3. Combining conditions with nested if statements
+4. Creating interactive programs with input
+5. Processing data with arrays
+6. Building calculators and converters
+
+**New in Version 0.2.0:**
+- ✅ If-else statements with `{}` syntax
+- ✅ All comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`)
+- ✅ Nested if-else support
+- ✅ Conditional logic in your programs
+
+**Coming Soon:**
+- `else if` syntax (use nested if-else for now)
+- Logical operators (`and`, `or`, `not`)
+- While loops with conditions
+- For loops
+- Switch/case statements
 
 ---
 
