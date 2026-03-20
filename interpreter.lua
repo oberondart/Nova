@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 -- Nova Scripting Language Interpreter
--- Version 1.0.1 - New Syntax
+-- Version 1.0.2 - New Syntax
 -- 100% Lua Implementation
 
 local NovaInterpreter = {}
@@ -268,6 +268,32 @@ local function split(str, delimiter)
     return result
 end
 
+-- Helper function to find matching closing brace
+local function find_matching_brace(lines, start_index)
+    local depth = 0
+    local in_block = false
+    
+    for i = start_index, #lines do
+        local line = lines[i]
+        
+        -- Count braces in the line
+        for j = 1, #line do
+            local char = line:sub(j, j)
+            if char == "{" then
+                depth = depth + 1
+                in_block = true
+            elseif char == "}" then
+                depth = depth - 1
+                if depth == 0 and in_block then
+                    return i
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
 function NovaInterpreter:parse_value(value_str)
     value_str = trim(value_str)
     
@@ -422,6 +448,174 @@ function NovaInterpreter:parse_arguments(args_str)
     return args
 end
 
+function NovaInterpreter:evaluate_condition(condition_str)
+    condition_str = trim(condition_str)
+    
+    -- Try == (equality)
+    local var, val = condition_str:match("^(%w+)%s*==%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value == compare_value
+    end
+    
+    -- Try != (not equal)
+    var, val = condition_str:match("^(%w+)%s*!=%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value ~= compare_value
+    end
+    
+    -- Try >= (greater or equal) - must come before >
+    var, val = condition_str:match("^(%w+)%s*>=%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value >= compare_value
+    end
+    
+    -- Try <= (less or equal) - must come before <
+    var, val = condition_str:match("^(%w+)%s*<=%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value <= compare_value
+    end
+    
+    -- Try > (greater than)
+    var, val = condition_str:match("^(%w+)%s*>%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value > compare_value
+    end
+    
+    -- Try < (less than)
+    var, val = condition_str:match("^(%w+)%s*<%s*(.+)$")
+    if var then
+        local var_value = self.varstorage[var]
+        local compare_value = self:parse_value(val)
+        return var_value < compare_value
+    end
+    
+    -- Try logical AND
+    local left, right = condition_str:match("^(.+)%s+and%s+(.+)$")
+    if left and right then
+        return self:evaluate_condition(left) and self:evaluate_condition(right)
+    end
+    
+    -- Try logical OR
+    left, right = condition_str:match("^(.+)%s+or%s+(.+)$")
+    if left and right then
+        return self:evaluate_condition(left) or self:evaluate_condition(right)
+    end
+    
+    return false
+end
+
+function NovaInterpreter:execute_if_block(lines, start_index)
+    local if_line = trim(lines[start_index])
+    local condition = if_line:match("^if%s+(.+)%s*{%s*$")
+    
+    if not condition then
+        print("error: invalid if syntax on line " .. start_index)
+        return start_index
+    end
+    
+    -- Find the closing brace for the if block
+    local if_end = find_matching_brace(lines, start_index)
+    if not if_end then
+        print("error: no matching } for if statement")
+        return start_index
+    end
+    
+    -- Check for else or else if
+    local else_start = nil
+    local else_end = nil
+    local skip_to = if_end
+    
+    if if_end + 1 <= #lines then
+        local next_line = trim(lines[if_end + 1])
+        
+        if next_line:match("^}%s*else%s+if%s+") or (if_end + 2 <= #lines and trim(lines[if_end + 2]):match("^else%s+if%s+")) then
+            -- else if - will be handled recursively
+            -- For now, treat as else block
+            if next_line:match("^}%s*else%s*{") then
+                else_start = if_end + 1
+                -- Find where else starts (skip the } from if)
+                local else_line = next_line:gsub("^}%s*", "")
+                if else_line:match("^else%s*{") then
+                    else_end = find_matching_brace(lines, else_start)
+                    skip_to = else_end
+                end
+            end
+        elseif next_line:match("^}%s*else%s*{") then
+            -- } else { on same line as closing if
+            else_start = if_end + 1
+            -- Need to find the else block which starts after }
+            -- Count braces differently
+            local depth = 0
+            local found_else_open = false
+            for i = if_end + 1, #lines do
+                local line = lines[i]
+                for j = 1, #line do
+                    local char = line:sub(j, j)
+                    if char == "{" then
+                        depth = depth + 1
+                        found_else_open = true
+                    elseif char == "}" then
+                        depth = depth - 1
+                        if depth == 0 and found_else_open then
+                            else_end = i
+                            break
+                        end
+                    end
+                end
+                if else_end then break end
+            end
+            skip_to = else_end or if_end
+        elseif next_line:match("^else%s*{") then
+            -- else { on next line
+            else_start = if_end + 1
+            else_end = find_matching_brace(lines, else_start)
+            skip_to = else_end or if_end
+        end
+    end
+    
+    -- Evaluate the condition
+    local condition_result = self:evaluate_condition(condition)
+    
+    if condition_result then
+        -- Execute the if block
+        for i = start_index + 1, if_end - 1 do
+            local line = trim(lines[i])
+            if line ~= "" then
+                self:execute_line(line)
+            end
+        end
+    elseif else_start and else_end then
+        -- Execute the else block
+        -- Find where the actual else code starts
+        local else_code_start = else_start
+        local first_line = trim(lines[else_start])
+        
+        -- Skip the } else { line
+        if first_line:match("^}%s*else%s*{") or first_line:match("^else%s*{") then
+            else_code_start = else_start + 1
+        end
+        
+        for i = else_code_start, else_end - 1 do
+            local line = trim(lines[i])
+            if line ~= "" and line ~= "}" then
+                self:execute_line(line)
+            end
+        end
+    end
+    
+    return skip_to
+end
+
 function NovaInterpreter:execute_line(line)
     line = trim(line)
     
@@ -555,8 +749,21 @@ function NovaInterpreter:execute(code)
         table.insert(lines, line)
     end
     
-    for _, line in ipairs(lines) do
-        self:execute_line(line)
+    local i = 1
+    while i <= #lines do
+        local line = trim(lines[i])
+        
+        -- Check if this is an if statement
+        if line:match("^if%s+") then
+            i = self:execute_if_block(lines, i)
+        else
+            -- Only execute non-empty lines that aren't just braces
+            if line ~= "" and line ~= "}" and not line:match("^}%s*else") then
+                self:execute_line(line)
+            end
+        end
+        
+        i = i + 1
     end
 end
 
